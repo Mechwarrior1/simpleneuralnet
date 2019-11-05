@@ -33,11 +33,10 @@ def softmax(x,deriv=False):
 
 class neural_net():
     '''
-    hidden=(sigmoid,tanh)
-    final=(softmax)
+    hidden layer takes sigmoid, tanh and relu
+    final layer is softmax
     hidden_nodes=(3,3)
     '''
-    
     def __init__ (self,funcs,hidden_nodes):
         self.funcs = funcs
         self.hidden_nodes=hidden_nodes
@@ -105,12 +104,6 @@ class neural_net():
             else:
                 self.weights['W'+str(i)]= np.random.randn(self.matrix_size['M'+str(i-1)], self.matrix_size['M'+str(i)])
                 self.bias['B'+str(i)]=np.random.randn(self.matrix_size['M'+str(i)])
-        # matrix1= (self.matrix_size,self.weights,self.bias)
-        # for matr in matrix1: #check values of matrix
-        #     for val in matr.values():
-        #         print(type(val))  
-        
-        # actual forward
         cost_plot=[]
         accuracy2=0
         for epoch in range(iter1):
@@ -157,7 +150,7 @@ class neural_net():
         plt.plot(cost_plot)
         plt.show()
     
-#test data
+#test data, based on lazy programmer deep learning class
 Nclass=500
 D=2
 
@@ -219,7 +212,3 @@ Yhat= ANN.forward(Xgrid)
 Yhat=np.argmax(Yhat,axis=1).squeeze()#squeeze converts to single array
 ax.plot_trisurf(Xgrid[:,0], Xgrid[:,1], np.array(Yhat),alpha=0.7,  #
     linewidth=0.2, antialiased=True)
-
-#############################
-############################ facial recognition
-
