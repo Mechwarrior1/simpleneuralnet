@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 from matplotlib import gridspec
 import matplotlib as mpl
 from __future__ import absolute_import, division, print_function, unicode_literals
+import copy
 
 #functions
 def sigmoid(x,deriv=False): 
@@ -33,10 +34,11 @@ def softmax(x,deriv=False):
 
 class neural_net():
     '''
-    hidden layer takes sigmoid, tanh and relu
-    final layer is softmax
+    hidden=(sigmoid,tanh)
+    final=(softmax)
     hidden_nodes=(3,3)
     '''
+    
     def __init__ (self,funcs,hidden_nodes):
         self.funcs = funcs
         self.hidden_nodes=hidden_nodes
@@ -47,7 +49,7 @@ class neural_net():
         self.delta={}
         self.weights_best={}
         self.bias_best={}
-        self.function_call={'sigmoid':sigmoid,'tanh':tanh,'relu':relu, 'softmax':softmax}
+        self.function_call={'sigmoid':sigmoid,'tanh':tanh,'relu':relu, 'softmax':softmax,'linear':lambda x, y: x}
     
     def forward(self,X1=None): #forward propagation
         result1=0
@@ -59,13 +61,18 @@ class neural_net():
                 weights1=self.weights['W0']
                 dot_product=np.dot(X1,weights1)+self.bias['B0']
                 #
-                self.Z_matrix['Z'+str(i)]=self.function_call[func](dot_product,False)
+                if func!='linear':
+                    self.Z_matrix['Z'+str(i)]=self.function_call[func](dot_product,False)
+                else:
+                    self.Z_matrix['Z'+str(i)]=dot_product
             else:
                 Z_matrix1=self.Z_matrix['Z'+str(i-1)]
                 weights1=self.weights['W'+str(i)]
                 dot_product=np.dot(Z_matrix1,weights1)+self.bias['B'+str(i)]
-                #
-                result1=self.function_call[func](dot_product,False)
+                if func!='linear':
+                    result1=self.function_call[func](dot_product,False)
+                else:
+                    result1=dot_product
                 self.Z_matrix['Z'+str(i)]=result1
         return result1
     
@@ -79,14 +86,21 @@ class neural_net():
                 pass
             else:
                 return(func+" not found, functions available:"+str(list(self.function_call.keys())))
+        if len(T1.shape) ==1:
+            T1=np.reshape(T1,(-1,1))
+        if len(T1.shape) ==1:
+            X1=np.reshape(X1,(-1,1)) #unflatten t
         self.matrix_size['K0']=T1.shape[1]
         self.matrix_size['D0']=X1.shape[1]
         self.matrix_size['N0']=X1.shape[0]
+        if self.hidden_nodes[-1]!=self.matrix_size['K0']: #check if last node matches output cols
+            print('number of output node does not match number of target columns')
+            return
         num_nodes=len(self.funcs)
         #create dimensions for matrix
         print("Building matrix dimensions")
         for i,nodes in enumerate(self.hidden_nodes):
-            if i >= (len(self.hidden_nodes)-1): #skip last M, using K for the number of catagory after softmax
+            if i >= (len(self.hidden_nodes)-1): #skip last M, using K for the number of catagory/output columns
                 pass
             else:
                 self.matrix_size["M"+str(i)]=nodes
@@ -104,22 +118,35 @@ class neural_net():
             else:
                 self.weights['W'+str(i)]= np.random.randn(self.matrix_size['M'+str(i-1)], self.matrix_size['M'+str(i)])
                 self.bias['B'+str(i)]=np.random.randn(self.matrix_size['M'+str(i)])
+        # matrix1= (self.matrix_size,self.weights,self.bias)
+        # for matr in matrix1: #check values of matrix
+        #     for val in matr.values():
+        #         print(type(val))  
+        
+        # actual forward
         cost_plot=[]
         accuracy2=0
         for epoch in range(iter1):
             if epoch % 200 == 0:
                 Y1=self.forward(X1)
-                # for val in self.Z_matrix.values(): #check Z1
-                #     print(type(val)) 
-                #print(Y1[0:5])
-                if T1.shape[1]>1:
+                if self.matrix_size['K0']>1:
                     cost1=np.sum((T1)*np.log(Y1))#cross entropy
-                    accuracy1=np.sum(np.argmax(T1,axis=1)==np.argmax(Y1,axis=1))/self.matrix_size['N0']
-                else:
-                    cost1=np.sum(T1*np.log(Y1)+(1-T1)*np.log(1-Y1)) 
                     accuracy1=np.sum(T1==Y1)/self.matrix_size['N0']
+                else:
+                    cost1=np.sum(T1*np.log(Y1)+(1-T1)*np.log(1-Y1))
+                    # global cost123
+                    # cost123 = cost1
+                    if isinstance(cost1,(list,tuple)):
+                        pass
+                    elif str(cost1)=='nan':#for when the log receives 0 or less
+                        Y11=copy.deepcopy(Y1)
+                        T11=copy.deepcopy(T1)
+                        Y11[Y11<=0]=1e-15
+                        Y11[Y11>=0.9999999]=0.9999999
+                        T11[T11==0]=1e-15
+                        cost1=np.sum(T11*np.log(Y11)+(1-T11)*np.log(1-Y11))
+                    accuracy1=np.sum(T1==np.round(Y1))/self.matrix_size['N0']
                 cost_plot.append(cost1)
-                
                 print("Epoch: ",epoch, "| Cost: ",'%.2f' % cost1,", | Classification accuracy: ",'%.2f' % (100*accuracy1),"%")
                 if accuracy1>accuracy2:
                     accuracy2=accuracy1
@@ -149,7 +176,8 @@ class neural_net():
                     self.bias['B'+str(i2)] += rate*delta1.sum(axis=0)
         plt.plot(cost_plot)
         plt.show()
-    
+
+
 #test data, based on lazy programmer deep learning class
 Nclass=500
 D=2
