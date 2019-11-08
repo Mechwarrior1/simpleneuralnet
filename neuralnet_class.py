@@ -180,7 +180,7 @@ class neural_net():
 
 #test data, based on lazy programmer deep learning class
 Nclass=500
-D=2
+D=3
 
 X11 = np.random.randn(Nclass, D) + np.array([0, -2])
 X12 = np.random.randn(Nclass, D) + np.array([2, 2])
